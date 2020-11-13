@@ -12,14 +12,16 @@ jobs:
 
   steps:
   - script: |
-      python3 -m pip install -U --upgrade pip setuptools
-      python3 -m pip install -U pytest
       echo "##vso[task.setvariable variable=PATH]${PATH}:${HOME}/.local/bin"
-    displayName: Install python tools
+      echo "##vso[task.setvariable variable=NNI_RELEASE]999.$(date +%Y%m%d%H%M%S)"
+      echo "##vso[task.setvariable variable=endpoint]remote_nni-ci-gpu-03"
 
   - script: |
       set -e
-      export NNI_RELEASE=999.$(date +%Y%m%d%H%M%S)
+      echo "PATH: $PATH"
+      echo "NNI_RELEASE: $NNI_RELEASE"
+      echo $(endpoint)
+      python3 -m pip install -U --upgrade pip setuptools
       python3 setup.py build_ts
       python3 setup.py bdist_wheel -p manylinux1_x86_64
       python3 -m pip install dist/nni-$NNI_RELEASE-py3-none-manylinux1_x86_64.whl
@@ -30,7 +32,7 @@ jobs:
       sudo apt-get install swig -y
       nnictl package install --name=SMAC
       nnictl package install --name=BOHB
-    displayName: Install extra dependencies
+    displayName: Install extra tuners
 
   - script: |
       set -e
@@ -41,7 +43,7 @@ jobs:
 
   - task: CopyFilesOverSSH@0
     inputs:
-      sshEndpoint: $(end_point)
+      sshEndpoint: $(endpoint)
       sourceFolder: dist
       targetFolder: /tmp/nnitest/$(Build.BuildId)/dist
       overwrite: true
@@ -50,18 +52,21 @@ jobs:
 
   - task: CopyFilesOverSSH@0
     inputs:
-      sshEndpoint: $(end_point)
+      sshEndpoint: $(endpoint)
       sourceFolder: test
       targetFolder: /tmp/nnitest/$(Build.BuildId)/test
       overwrite: true
-    displayName: Copy test cases to remote machine
+    displayName: Copy test scripts to remote machine
     timeoutInMinutes: 10
 
   - task: SSH@0
     inputs:
-      sshEndpoint: $(end_point)
+      sshEndpoint: $(endpoint)
       runOptions: commands
-      commands: python3 /tmp/nnitest/$(Build.BuildId)/test/nni_test/nnitest/remote_docker.py --mode start --name $(Build.BuildId) --image nni/nni
+      commands: |
+        python3 /tmp/nnitest/$(Build.BuildId)/test/nni_test/nnitest/remote_docker.py --mode start --name $(Build.BuildId) --image nni/nni
+        cp /tmp/nnitest/$(Build.BuildId)/port /tmp/testport-111
+        echo "##vso[task.setvariable variable=TEST_SSH]$(cat /tmp/testport-111)"
     displayName: Start docker
 
   - task: DownloadSecureFile@1
@@ -71,6 +76,8 @@ jobs:
 
   - script: |
       set -e
+      echo "$TEST_SSH"
+      echo $(TEST_SSH)
       cp $(Agent.TempDirectory)/$(remote_private_key) test/id_rsa
       chmod 600 test/id_rsa
       scp -P $(remote_port) -i test/id_rsa $(remote_user)@$(remote_host):/tmp/nnitest/$(Build.BuildId)/port test/port
@@ -94,7 +101,7 @@ jobs:
 
   - task: SSH@0
     inputs:
-      sshEndpoint: $(end_point)
+      sshEndpoint: $(endpoint)
       runOptions: commands
       commands: python3 /tmp/nnitest/$(Build.BuildId)/test/nni_test/nnitest/remote_docker.py --mode stop --name $(Build.BuildId)
     displayName: Stop docker
