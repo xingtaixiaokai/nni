@@ -6,7 +6,7 @@ schedules:
     include: [ master ]
 
 jobs:
-- job: full test - remote - linux to linux
+- job: remote_linux2linux
   pool: NNI CI GPU3
   timeoutInMinutes: 120
 
@@ -39,7 +39,7 @@ jobs:
       nnictl package install .
     displayName: Install example customized tuner
 
-  - task: CopyFileOverSSH
+  - task: CopyFilesOverSSH@0
     inputs:
       sshEndpoint: $(end_point)
       sourceFolder: dist
@@ -48,7 +48,7 @@ jobs:
     displayName: Copy wheel to remote machine
     timeoutInMinutes: 10
 
-  - task: CopyFileOverSSH
+  - task: CopyFilesOverSSH@0
     inputs:
       sshEndpoint: $(end_point)
       sourceFolder: test
@@ -57,14 +57,14 @@ jobs:
     displayName: Copy test cases to remote machine
     timeoutInMinutes: 10
 
-  - task: SSH
+  - task: SSH@0
     inputs:
-      sshEndpoint: %(end_point)
+      sshEndpoint: $(end_point)
       runOptions: commands
       commands: python3 /tmp/nnitest/$(Build.BuildId)/test/nni_test/nnitest/remote_docker.py --mode start --name $(Build.BuildId) --image nni/nni
     displayName: Start docker
 
-  - task: DownloadSecureFile
+  - task: DownloadSecureFile@1
     inputs:
       secureFile: $(remote_private_key)
     displayName: Download secure file
@@ -92,7 +92,7 @@ jobs:
     displayName: Integration test
     continueOnError: true
 
-  - task: SSH
+  - task: SSH@0
     inputs:
       sshEndpoint: $(end_point)
       runOptions: commands
