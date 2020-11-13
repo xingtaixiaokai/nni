@@ -24,16 +24,8 @@ jobs:
       sshEndpoint: $(ssh_endpoint)
       runOptions: commands
       commands: |
-        echo hello > /tmp/nni-docker-port-222
-        echo "vvv cat vvv"
-        cat /tmp/nni-docker-port-222
-        echo "^^^ cat ^^^"
-        export DOCKER_PORT="$(cat /tmp/nni-docker-port-222)"
-        echo "vvv echo vvv"
-        echo $DOCKER_PORT
-        echo "^^^ echo ^^^"
         #export DOCKER_PORT=$(python3 /tmp/nnitest/$(Build.BuildId)/test/nni_test/nnitest/remote_docker.py --mode start --name $(Build.BuildId) --image nni/nni)
-        echo "##vso[task.setvariable variable=docker_port]$DOCKER_PORT"
+        echo "##vso[task.setvariable variable=docker_port]$(echo hello)"
     displayName: debug in
 
   - script: |
