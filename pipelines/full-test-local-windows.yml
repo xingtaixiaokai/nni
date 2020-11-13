@@ -6,7 +6,7 @@ schedules:
     include: [ master ]
 
 jobs:
-- job: full test - local - windows
+- job: local_windows
   pool: NNI CI WINDOWS2
   timeoutInMinutes: 120
 

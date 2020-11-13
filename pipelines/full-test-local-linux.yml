@@ -6,7 +6,7 @@ schedules:
     include: [ master ]
 
 jobs:
-- job: full test - local - linux
+- job: local_linux
   pool: NNI CI GPU3
   timeoutInMinutes: 120
 
