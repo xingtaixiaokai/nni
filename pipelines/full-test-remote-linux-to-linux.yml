@@ -43,7 +43,7 @@ jobs:
 
   - task: CopyFilesOverSSH@0
     inputs:
-      sshEndpoint: $(endpoint)
+      sshEndpoint: $(end_point)
       sourceFolder: dist
       targetFolder: /tmp/nnitest/$(Build.BuildId)/dist
       overwrite: true
@@ -52,7 +52,7 @@ jobs:
 
   - task: CopyFilesOverSSH@0
     inputs:
-      sshEndpoint: $(endpoint)
+      sshEndpoint: $(end_point)
       sourceFolder: test
       targetFolder: /tmp/nnitest/$(Build.BuildId)/test
       overwrite: true
@@ -61,7 +61,7 @@ jobs:
 
   - task: SSH@0
     inputs:
-      sshEndpoint: $(endpoint)
+      sshEndpoint: $(end_point)
       runOptions: commands
       commands: |
         python3 /tmp/nnitest/$(Build.BuildId)/test/nni_test/nnitest/remote_docker.py --mode start --name $(Build.BuildId) --image nni/nni
@@ -101,7 +101,7 @@ jobs:
 
   - task: SSH@0
     inputs:
-      sshEndpoint: $(endpoint)
+      sshEndpoint: $(end_point)
       runOptions: commands
       commands: python3 /tmp/nnitest/$(Build.BuildId)/test/nni_test/nnitest/remote_docker.py --mode stop --name $(Build.BuildId)
     displayName: Stop docker
