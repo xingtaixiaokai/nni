@@ -1,0 +1,69 @@
+trigger: none
+pr: none
+schedules:
+- cron: 0 16 * * *
+  branches:
+    include: [ master ]
+
+jobs:
+- job: remote_linux2windows
+  pool: NNI CI REMOTE CLI
+  timeoutInMinutes: 120
+
+  steps:
+  - task: CopyFilesOverSSH@0
+    inputs:
+      sshEndpoint: $(end_point)
+      contents: |
+        **
+        !**/dist/**
+        !**/node_modules/**
+      targetFolder: /tmp/nnitest/$(Build.BuildId)
+      overwrite: true
+    displayName: Copy all files to remote machine
+    timeoutInMinutes: 10
+
+  - task: SSH@0
+    inputs:
+      sshEndpoint: $(end_point)
+      runOptions: commands
+      commands: cd "\tmp\nnitest\$(Build.BuildId)" && powershell.exe -command "conda activate l2w | python -m pip uninstall nni | python setup.py develop"
+      failOnStdErr: false
+    displayName: Install on remote windows
+
+  - script: python3 -m pip install --upgrade pip setuptools --user
+    displayName: Install python tools
+
+  - script: python setup.py develop
+    displayName: Install nni via source code
+
+  - script: |
+      set -e
+      sudo apt-get install swig -y
+      PATH=$HOME/.local/bin:$PATH nnictl package install --name=SMAC
+      PATH=$HOME/.local/bin:$PATH nnictl package install --name=BOHB
+    displayName: Install dependencies for integration tests in remote mode
+
+  - script: |
+      set -e
+      cd examples/tuners/customized_tuner
+      python3 setup.py develop --user
+      PATH=$HOME/.local/bin:$PATH nnictl package install .
+    displayName: Install demotuner for customized_tuner test
+
+  - script: |
+      set -e
+      cd test
+      python3 nni_test/nnitest/generate_ts_config.py --ts remote --remote_user $(remote_user) --remote_host $(remote_host) \
+      --remote_port $(remote_port) --remote_pwd $(remote_pwd) --nni_manager_ip $(nni_manager_ip)
+      cat config/training_service.yml
+      PATH=$HOME/.local/bin:$PATH python3 nni_test/nnitest/run_tests.py --config config/integration_tests.yml --ts remote
+    displayName: Integration test
+
+  - task: SSH@0
+    inputs:
+      sshEndpoint: $(end_point)
+      runOptions: commands
+      commands: rmdir /s /q "\\?\c:\tmp\nnitest\$(Build.BuildId)"
+    condition: always()
+    displayName: Clean up on remote server

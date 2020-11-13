@@ -41,7 +41,7 @@ jobs:
   - script: |
       cd test
       python -m pytest ut
-      # TODO: TypeScript UT
+      echo "TODO: TypeScript UT"
     displayName: Unit test
   
   - script: |
