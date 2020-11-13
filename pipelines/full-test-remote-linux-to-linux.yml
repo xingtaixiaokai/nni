@@ -1,0 +1,100 @@
+trigger: none
+pr: none
+schedules:
+- cron: 0 16 * * *
+  branches:
+    include: [ master ]
+
+jobs:
+- job: full test - remote - linux to linux
+  pool: NNI CI GPU3
+  timeoutInMinutes: 120
+
+  steps:
+  - script: |
+      python3 -m pip install -U --upgrade pip setuptools
+      python3 -m pip install -U pytest
+      echo "##vso[task.setvariable variable=PATH]${PATH}:${HOME}/.local/bin"
+    displayName: Install python tools
+
+  - script: |
+      set -e
+      export NNI_RELEASE=999.$(date +%Y%m%d%H%M%S)
+      python3 setup.py build_ts
+      python3 setup.py bdist_wheel -p manylinux1_x86_64
+      python3 -m pip install dist/nni-$NNI_RELEASE-py3-none-manylinux1_x86_64.whl
+    displayName: Install NNI
+
+  - script: |
+      set -e
+      sudo apt-get install swig -y
+      nnictl package install --name=SMAC
+      nnictl package install --name=BOHB
+    displayName: Install extra dependencies
+
+  - script: |
+      set -e
+      cd examples/tuners/customized_tuner
+      python3 setup.py develop --user
+      nnictl package install .
+    displayName: Install example customized tuner
+
+  - task: CopyFileOverSSH
+    inputs:
+      sshEndpoint: $(end_point)
+      sourceFolder: dist
+      targetFolder: /tmp/nnitest/%(Build.BuildId)/dist
+      overwrite: true
+    displayName: Copy wheel to remote machine
+    timeoutInMinutes: 10
+
+  - task: CopyFileOverSSH
+    inputs:
+      sshEndpoint: $(end_point)
+      sourceFolder: test
+      targetFolder: /tmp/nnitest/%(Build.BuildId)/test
+      overwrite: true
+    displayName: Copy test cases to remote machine
+    timeoutInMinutes: 10
+
+  - task: SSH
+    inputs:
+      sshEndpoint: %(end_point)
+      runOptions: commands
+      commands: python3 /tmp/nnitest/$(Build.BuildId)/test/nni_test/nnitest/remote_docker.py --mode start --name $(Build.BuildId) --image nni/nni
+    displayName: Start docker
+
+  - task: DownloadSecureFile
+    inputs:
+      secureFile: $(remote_private_key)
+    displayName: Download secure file
+
+  - script: |
+      set -e
+      cp $(Agent.TempDirectory)/$(remote_private_key) test/id_rsa
+      chmod 600 test/id_rsa
+      scp -P $(remote_port) -i test/id_rsa $(remote_user)@$(remote_host):/tmp/nnitest/$(Build.BuildId)/port test/port
+      cat test/port
+    displayName: Get docker port
+
+  - script: |
+      cd test
+      python3 nni_test/nnitest/generate_ts_config.py \
+          --ts remote \
+          --remote_reuse $(remote_reuse) \
+          --remote_user $(docker_user) \
+          --remote_host $(remote_host) \
+          --remote_port $(cat port) \
+          --remote_pwd $(docker_pwd) \
+          --nni_manager_ip $(nni_manager_ip)
+      cat config/training_service.yml
+      python3 nni_test/nnitest/run_tests.py --config config/integration_tests.yml --ts remote
+    displayName: Integration test
+    continueOnError: true
+
+  - task: SSH
+    inputs:
+      sshEndpoint: $(end_point)
+      runOptions: commands
+      commands: python3 /tmp/nnitest/$(Build.BuildId)/test/nni_test/nnitest/remote_docker.py --mode stop --name $(Build.BuildId)
+    displayName: Stop docker
