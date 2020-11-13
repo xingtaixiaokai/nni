@@ -28,7 +28,7 @@ jobs:
         echo "vvv cat vvv"
         cat /tmp/nni-docker-port-222
         echo "^^^ cat ^^^"
-        export DOCKER_PORT=$(cat /tmp/nni-docker-port-222)
+        export DOCKER_PORT="$(cat /tmp/nni-docker-port-222)"
         echo "vvv echo vvv"
         echo $DOCKER_PORT
         echo "^^^ echo ^^^"
