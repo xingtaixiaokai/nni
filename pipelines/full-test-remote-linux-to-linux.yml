@@ -5,6 +5,9 @@ schedules:
   branches:
     include: [ master ]
 
+variables:
+  ssh_endpoint: remote_nni-ci-gpu-03
+
 jobs:
 - job: remote_linux2linux
   pool: NNI CI REMOTE CLI
@@ -14,13 +17,10 @@ jobs:
   - script: |
       echo "##vso[task.setvariable variable=PATH]${PATH}:${HOME}/.local/bin"
       echo "##vso[task.setvariable variable=NNI_RELEASE]999.$(date +%Y%m%d%H%M%S)"
-      echo "##vso[task.setvariable variable=endpoint]remote_nni-ci-gpu-03"
+    displayName: Setup varaibles
 
   - script: |
       set -e
-      echo "PATH: $PATH"
-      echo "NNI_RELEASE: $NNI_RELEASE"
-      echo $(endpoint)
       python3 -m pip install -U --upgrade pip setuptools
       python3 setup.py build_ts
       python3 setup.py bdist_wheel -p manylinux1_x86_64
@@ -43,7 +43,7 @@ jobs:
 
   - task: CopyFilesOverSSH@0
     inputs:
-      sshEndpoint: $(end_point)
+      sshEndpoint: $(ssh_endpoint)
       sourceFolder: dist
       targetFolder: /tmp/nnitest/$(Build.BuildId)/dist
       overwrite: true
@@ -52,7 +52,7 @@ jobs:
 
   - task: CopyFilesOverSSH@0
     inputs:
-      sshEndpoint: $(end_point)
+      sshEndpoint: $(ssh_endpoint)
       sourceFolder: test
       targetFolder: /tmp/nnitest/$(Build.BuildId)/test
       overwrite: true
@@ -61,37 +61,24 @@ jobs:
 
   - task: SSH@0
     inputs:
-      sshEndpoint: $(end_point)
+      sshEndpoint: $(ssh_endpoint)
       runOptions: commands
       commands: |
-        python3 /tmp/nnitest/$(Build.BuildId)/test/nni_test/nnitest/remote_docker.py --mode start --name $(Build.BuildId) --image nni/nni
-        cp /tmp/nnitest/$(Build.BuildId)/port /tmp/testport-111
-        echo "##vso[task.setvariable variable=TEST_SSH]$(cat /tmp/testport-111)"
+        export DOCKER_PORT=$(python3 /tmp/nnitest/$(Build.BuildId)/test/nni_test/nnitest/remote_docker.py --mode start --name $(Build.BuildId) --image nni/nni)
+        echo "##vso[task.setvariable variable=docker_port]$DOCKER_PORT"
     displayName: Start docker
 
-  - task: DownloadSecureFile@1
-    inputs:
-      secureFile: $(remote_private_key)
-    displayName: Download secure file
-
   - script: |
-      set -e
-      echo "$TEST_SSH"
-      echo $(TEST_SSH)
-      cp $(Agent.TempDirectory)/$(remote_private_key) test/id_rsa
-      chmod 600 test/id_rsa
-      scp -P $(remote_port) -i test/id_rsa $(remote_user)@$(remote_host):/tmp/nnitest/$(Build.BuildId)/port test/port
-      cat test/port
-    displayName: Get docker port
-
-  - script: |
+      echo "vvv docker port vvv"
+      echo $(docker_port)
+      echo "^^^ docker port ^^^"
       cd test
       python3 nni_test/nnitest/generate_ts_config.py \
           --ts remote \
           --remote_reuse $(remote_reuse) \
           --remote_user $(docker_user) \
           --remote_host $(remote_host) \
-          --remote_port $(cat port) \
+          --remote_port $(docker_port) \
           --remote_pwd $(docker_pwd) \
           --nni_manager_ip $(nni_manager_ip)
       cat config/training_service.yml
@@ -101,7 +88,7 @@ jobs:
 
   - task: SSH@0
     inputs:
-      sshEndpoint: $(end_point)
+      sshEndpoint: $(ssh_endpoint)
       runOptions: commands
       commands: python3 /tmp/nnitest/$(Build.BuildId)/test/nni_test/nnitest/remote_docker.py --mode stop --name $(Build.BuildId)
     displayName: Stop docker

@@ -34,7 +34,7 @@ def find_wheel_package(dir):
     return None
 
 def start_container(image, name, nnimanager_os):
-    '''Start docker container, generate a port in /tmp/nnitest/{name}/port file'''
+    '''Start docker container, print the port to stdout'''
     port = find_port()
     source_dir = '/tmp/nnitest/' + name
     run_cmds = ['docker', 'run', '-d', '-t', '-p', str(port) + ':22', '--name', name, '--mount', 'type=bind,source=' + source_dir + ',target=/tmp/nni', image]
@@ -61,8 +61,7 @@ def start_container(image, name, nnimanager_os):
     check_call(pip_cmds)
     sdk_cmds = ['docker', 'exec', name, 'python3', '-m', 'pip', 'install', get_dist(wheel_name)]
     check_call(sdk_cmds)
-    with open(source_dir + '/port', 'w') as file:
-        file.write(str(port))
+    print(port)
 
 def stop_container(name):
     '''Stop docker container'''
