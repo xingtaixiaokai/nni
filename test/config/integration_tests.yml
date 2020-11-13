@@ -225,24 +225,24 @@ testCases:
 #- name: tuner-tpe
 #  configFile: test/config/tuners/tpe.yml
 
-- name: tuner-batch
-  configFile: test/config/tuners/batch.yml
+#- name: tuner-batch
+#  configFile: test/config/tuners/batch.yml
 
-- name: tuner-bohb
-  configFile: test/config/tuners/bohb.yml
-  platform: linux darwin
+#- name: tuner-bohb
+#  configFile: test/config/tuners/bohb.yml
+#  platform: linux darwin
 
-- name: tuner-gp
-  configFile: test/config/tuners/gp.yml
+#- name: tuner-gp
+#  configFile: test/config/tuners/gp.yml
 
-- name: tuner-grid
-  configFile: test/config/tuners/gridsearch.yml
+#- name: tuner-grid
+#  configFile: test/config/tuners/gridsearch.yml
 
-- name: tuner-hyperband
-  configFile: test/config/tuners/hyperband.yml
+#- name: tuner-hyperband
+#  configFile: test/config/tuners/hyperband.yml
 
-- name: tuner-metis
-  configFile: test/config/tuners/metis.yml
+#- name: tuner-metis
+#  configFile: test/config/tuners/metis.yml
 
 - name: tuner-regularized_evolution
   configFile: test/config/tuners/regularized_evolution_tuner.yml
