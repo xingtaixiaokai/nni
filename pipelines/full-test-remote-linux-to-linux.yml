@@ -19,22 +19,6 @@ jobs:
       echo "##vso[task.setvariable variable=NNI_RELEASE]999.$(date +%Y%m%d%H%M%S)"
     displayName: Setup varaibles
 
-  - task: SSH@0
-    inputs:
-      sshEndpoint: $(ssh_endpoint)
-      runOptions: commands
-      commands: |
-        #export DOCKER_PORT=$(python3 /tmp/nnitest/$(Build.BuildId)/test/nni_test/nnitest/remote_docker.py --mode start --name $(Build.BuildId) --image nni/nni)
-        echo "##vso[task.setvariable variable=docker_port]$(echo hello)"
-    displayName: debug in
-
-  - script: |
-      echo "vvv docker port vvv"
-      echo $(docker_port)
-      echo $(DOCKER_PORT)
-      echo "^^^ docker port ^^^"
-    displayName: debug out
-
   - script: |
       set -e
       python3 -m pip install -U --upgrade pip setuptools
