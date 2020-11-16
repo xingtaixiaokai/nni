@@ -73,6 +73,7 @@ jobs:
       fi
       echo "Using image: ${DOCKER_IMAGE}"
 
+      cd test
       python3 nni_test/nnitest/generate_ts_config.py \
           --ts pai \
           --pai_reuse $(reuse_mode) \
