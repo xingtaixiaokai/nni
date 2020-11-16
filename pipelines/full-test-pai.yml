@@ -9,8 +9,9 @@ variables:
   reuse_mode: false
 
 # variables set on VSO: (for security concern)
-#   docker_hub_password
 #   manager_ip
+#   pai_token
+#   docker_hub_password
 
 jobs:
 - job: pai
@@ -65,7 +66,7 @@ jobs:
 
   - script: |
       set -e
-      if [ $(build_docker_image) = 'true' ]; then
+      if [ "$(build_docker_image)" = 'true' ]; then
         export DOCKER_IMAGE=nnidev/nni-it-pai:${TIMESTAMP}
       else
         export DOCKER_IMAGE=msranni/nni:latest
