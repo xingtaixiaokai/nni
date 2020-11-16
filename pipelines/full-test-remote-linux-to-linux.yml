@@ -6,8 +6,8 @@ schedules:
     include: [ master ]
 
 variables:
-  worker: remote_nni-ci-gpu-03
   reuse_mode: false
+  worker: remote_nni-ci-gpu-03
 
 # variables set on VSO: (for security concern)
 #   manager_ip
@@ -84,10 +84,8 @@ jobs:
           --remote_port $(docker_port) \
           --remote_pwd $(password_in_docker) \
           --nni_manager_ip $(manager_ip)
-      cat config/training_service.yml
       python3 nni_test/nnitest/run_tests.py --config config/integration_tests.yml --ts remote
     displayName: Integration test
-    continueOnError: true
 
   - task: SSH@0
     inputs:

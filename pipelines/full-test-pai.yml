@@ -5,73 +5,84 @@ schedules:
   branches:
     include: [ master ]
 
+variables:
+  reuse_mode: false
+
+# variables set on VSO: (for security concern)
+#   docker_hub_password
+#   manager_ip
+
 jobs:
 - job: pai
   pool: NNI CI PAI CLI
   timeoutInMinutes: 120
 
   steps:
-  - script: python3 -m pip install --upgrade pip setuptools --user
-    displayName: 'Install python tools'
+  - script: |
+      export TIMESTAMP=$(date -u +%Y%m%d%H%M%S)
+      echo "##vso[task.setvariable variable=TIMESTAMP]${TIMESTAMP}"
+      echo "##vso[task.setvariable variable=PATH]${PATH}:${HOME}/.local/bin"
+      echo "##vso[task.setvariable variable=NNI_RELEASE]999.${TIMESTAMP}"
+      python3 -m pip install -U --upgrade pip setuptools
+    displayName: Prepare
 
   - script: |
       set -e
-      cd deployment/pypi
-      if [ -d ./dist ]
-      then
-        rm -rf ./dist/*
-      fi
-      echo 'building prerelease package...'
-      make build
-      ls $(Build.SourcesDirectory)/deployment/pypi/dist/
-    condition: eq( variables['build_docker_img'], 'true' )
-    displayName: 'build nni bdsit_wheel'
-
-  - script: |
-      export NNI_RELEASE=999.0
       python3 setup.py build_ts
       python3 setup.py bdist_wheel -p manylinux1_x86_64
-      python3 -m pip install dist/nni-999.0-py3-none-manylinux1_x86_64.whl
-    displayName: 'Install nni toolkit via source code'
+      python3 -m pip install -U dist/nni-${NNI_RELEASE}-py3-none-manylinux1_x86_64.whl
+    displayName: Build and install NNI
 
   - script: |
       set -e
       sudo apt-get install swig -y
-      PATH=$HOME/.local/bin:$PATH nnictl package install --name=SMAC
-      PATH=$HOME/.local/bin:$PATH nnictl package install --name=BOHB
-    displayName: 'Install dependencies for integration tests in PAI mode'
+      nnictl package install --name=SMAC
+      nnictl package install --name=BOHB
+    displayName: Install extra tuners
 
   - script: |
       set -e
       cd examples/tuners/customized_tuner
       python3 setup.py develop --user
-      PATH=$HOME/.local/bin:$PATH nnictl package install ./
-    displayName: 'Install demotuner for customized_tuner test'
+      nnictl package install .
+    displayName: Install customized tuner
 
   - script: |
       set -e
-      if [ $(build_docker_img) = 'true' ]
-      then
-        docker login -u $(docker_hub_user) -p $(docker_hub_pwd)
-        echo 'updating docker file for installing nni from local...'
-        # update Dockerfile to install NNI in docker image from whl file built in last step
-        sed -ie 's/RUN python3 -m pip --no-cache-dir install nni/COPY .\/dist\/* .\/\nRUN python3 -m pip install nni-*.whl/' Dockerfile
-        cat Dockerfile
-        export IMG_TAG=`date -u +%y%m%d%H%M`
+      docker login -u msranni -p $(docker_hub_password)
 
-        echo 'build and upload docker image'
-        docker build -f Dockerfile -t $(test_docker_img_name):$IMG_TAG .
-        docker push $(test_docker_img_name):$IMG_TAG
+      echo 'Modify docker file to install NNI from local wheel'
+      sed -ie 's/RUN python3 -m pip --no-cache-dir install nni/COPY dist\/* .\nRUN python3 -m pip install nni-*.whl/' Dockerfile
+      cat Dockerfile
 
-        export TEST_IMG=$(test_docker_img_name):$IMG_TAG
-        cd ../../
+      echo 'Build docker image'
+      docker build -f Dockerfile -t nnidev/nni-it-pai:${TIMESTAMP} .
+
+      echo 'Upload docker image'
+      docker push nnidev/nni-it-pai:${TIMESTAMP}
+    condition: eq(variables['build_docker_image'], 'true')
+    displayName: Build and upload docker image
+
+  - script: |
+      set -e
+      if [ $(build_docker_image) = 'true' ]; then
+        export DOCKER_IMAGE=nnidev/nni-it-pai:${TIMESTAMP}
       else
-        export TEST_IMG=$(existing_docker_img)
+        export DOCKER_IMAGE=msranni/nni:latest
       fi
+      echo "Using image: ${DOCKER_IMAGE}"
 
-      echo "TEST_IMG:$TEST_IMG"
-      cd test
-      python3 nni_test/nnitest/generate_ts_config.py --ts pai --pai_reuse $(pai_reuse) --pai_host $(pai_host) --pai_user $(pai_user) --nni_docker_image $TEST_IMG --pai_storage_config_name $(pai_storage_config_name)\
-       --pai_token $(pai_token) --nni_manager_nfs_mount_path $(nni_manager_nfs_mount_path) --container_nfs_mount_path $(container_nfs_mount_path) --nni_manager_ip $(nni_manager_ip) --vc $(virtual_cluster)
-      PATH=$HOME/.local/bin:$PATH python3 nni_test/nnitest/run_tests.py --config config/integration_tests.yml --ts pai
-    displayName: 'integration test'
+      python3 nni_test/nnitest/generate_ts_config.py \
+          --ts pai \
+          --pai_reuse $(reuse_mode) \
+          --pai_host https://ne.openpai.org \
+          --pai_user shinyang \
+          --nni_docker_image ${DOCKER_IMAGE} \
+          --pai_storage_config_name confignfs-data \
+          --pai_token $(pai_token) \
+          --nni_manager_nfs_mount_path /home/quzha/mnt-pai-ne/shinyang3 \
+          --container_nfs_mount_path /mnt/confignfs-data/shinyang3 \
+          --nni_manager_ip $(manager_ip) \
+          --vc nni
+      python3 nni_test/nnitest/run_tests.py --config config/integration_tests.yml --ts pai
+    displayName: Integration test
