@@ -6,7 +6,13 @@ schedules:
     include: [ master ]
 
 variables:
-  ssh_endpoint: remote_nni-ci-gpu-03
+  worker: remote_nni-ci-gpu-03
+  reuse_mode: false
+
+# variables set on VSO: (for security concern)
+#   manager_ip
+#   worker_ip
+#   password_in_docker
 
 jobs:
 - job: remote_linux2linux
@@ -43,7 +49,7 @@ jobs:
 
   - task: CopyFilesOverSSH@0
     inputs:
-      sshEndpoint: $(ssh_endpoint)
+      sshEndpoint: $(worker)
       sourceFolder: dist
       targetFolder: /tmp/nnitest/$(Build.BuildId)/dist
       overwrite: true
@@ -52,7 +58,7 @@ jobs:
 
   - task: CopyFilesOverSSH@0
     inputs:
-      sshEndpoint: $(ssh_endpoint)
+      sshEndpoint: $(worker)
       sourceFolder: test
       targetFolder: /tmp/nnitest/$(Build.BuildId)/test
       overwrite: true
@@ -61,7 +67,7 @@ jobs:
 
   - task: SSH@0
     inputs:
-      sshEndpoint: $(ssh_endpoint)
+      sshEndpoint: $(worker)
       runOptions: commands
       commands: |
         python3 /tmp/nnitest/$(Build.BuildId)/test/nni_test/nnitest/remote_docker.py --mode start --name $(Build.BuildId) --image nni/nni
@@ -69,18 +75,15 @@ jobs:
     displayName: Start docker
 
   - script: |
-      echo "vvv docker port vvv"
-      echo $(docker_port)
-      echo "^^^ docker port ^^^"
       cd test
       python3 nni_test/nnitest/generate_ts_config.py \
           --ts remote \
-          --remote_reuse $(remote_reuse) \
-          --remote_user $(docker_user) \
-          --remote_host $(remote_host) \
+          --remote_reuse $(reuse_mode) \
+          --remote_user nni \
+          --remote_host $(worker_ip) \
           --remote_port $(docker_port) \
-          --remote_pwd $(docker_pwd) \
-          --nni_manager_ip $(nni_manager_ip)
+          --remote_pwd $(password_in_docker) \
+          --nni_manager_ip $(manager_ip)
       cat config/training_service.yml
       python3 nni_test/nnitest/run_tests.py --config config/integration_tests.yml --ts remote
     displayName: Integration test
@@ -88,7 +91,7 @@ jobs:
 
   - task: SSH@0
     inputs:
-      sshEndpoint: $(ssh_endpoint)
+      sshEndpoint: $(worker)
       runOptions: commands
       commands: python3 /tmp/nnitest/$(Build.BuildId)/test/nni_test/nnitest/remote_docker.py --mode stop --name $(Build.BuildId)
     displayName: Stop docker
