@@ -64,7 +64,7 @@ jobs:
       sshEndpoint: $(ssh_endpoint)
       runOptions: commands
       commands: |
-        echo "##vso[task.setvariable variable=docker_port]$(python3 /tmp/nnitest/$(Build.BuildId)/test/nni_test/nnitest/remote_docker.py --mode start --name $(Build.BuildId) --image nni/nni)"
+        echo "##vso[task.setvariable variable=docker_port]$(python3 /tmp/nnitest/$(Build.BuildId)/test/nni_test/nnitest/remote_docker.py start $(Build.BuildId) nni/nni unix)"
     displayName: Start docker
 
   - script: |

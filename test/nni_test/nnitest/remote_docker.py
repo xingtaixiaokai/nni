@@ -72,10 +72,10 @@ def stop_container(name):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--mode', required=True, choices=['start', 'stop'], dest='mode', help='start or stop a container')
-    parser.add_argument('--name', required=True, dest='name', help='the name of container to be used')
-    parser.add_argument('--image', dest='image', help='the image to be used')
-    parser.add_argument('--os', dest='os', default='unix', choices=['unix', 'windows'], help='nniManager os version')
+    parser.add_argument('mode', choices=['start', 'stop'])
+    parser.add_argument('name')
+    parser.add_argument('image', nargs='?')
+    parser.add_argument('os', nargs='?', choices=['unix', 'windows'])
     args = parser.parse_args()
     if args.mode == 'start':
         start_container(args.image, args.name, args.os)
