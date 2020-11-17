@@ -30,7 +30,7 @@ jobs:
       echo "timestamp: ${TIMESTAMP}"
       echo "build docker image: $(build_docker_image)"
       echo "pip version: $(python3 -c 'import pip ; print(pip.__version__)')"
-      echo "setuptools version: $(python3 -c 'setuptools ; print(setuptools.__version__)')"
+      echo "setuptools version: $(python3 -c 'import setuptools ; print(setuptools.__version__)')"
     displayName: Prepare
 
   - script: |
@@ -56,7 +56,7 @@ jobs:
 
   - script: |
       set -e
-      docker login -u msranni -p $(docker_hub_password)
+      docker login -u nnidev -p $(docker_hub_password)
 
       echo 'Modify docker file to install NNI from local wheel'
       sed -ie 's/RUN python3 -m pip --no-cache-dir install nni/COPY dist\/* .\nRUN python3 -m pip install nni-*.whl/' Dockerfile
