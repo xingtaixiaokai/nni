@@ -24,17 +24,15 @@ jobs:
       echo "##vso[task.setvariable variable=TIMESTAMP]${TIMESTAMP}"
       echo "##vso[task.setvariable variable=PATH]${PATH}:${HOME}/.local/bin"
       echo "##vso[task.setvariable variable=NNI_RELEASE]999.${TIMESTAMP}"
-      python3 -m pip install -U --upgrade pip setuptools
 
       echo "working directory: ${PWD}"
       echo "timestamp: ${TIMESTAMP}"
       echo "build docker image: $(build_docker_image)"
-      echo "pip version: $(python3 -c 'import pip ; print(pip.__version__)')"
-      echo "setuptools version: $(python3 -c 'import setuptools ; print(setuptools.__version__)')"
     displayName: Prepare
 
   - script: |
       set -e
+      python3 -m pip install -U --upgrade pip setuptools
       python3 setup.py build_ts
       python3 setup.py bdist_wheel -p manylinux1_x86_64
       python3 -m pip install -U dist/nni-${NNI_RELEASE}-py3-none-manylinux1_x86_64.whl
@@ -63,29 +61,22 @@ jobs:
       cat Dockerfile
 
       echo 'Build docker image'
-      docker build -f Dockerfile -t nnidev/nni-it-pai:${TIMESTAMP} .
+      docker build -f Dockerfile -t nnidev/nni-it-pai:latest .
 
       echo 'Upload docker image'
-      docker push nnidev/nni-it-pai:${TIMESTAMP}
+      docker push nnidev/nni-it-pai:latest
     condition: eq(variables['build_docker_image'], 'true')
     displayName: Build and upload docker image
 
   - script: |
       set -e
-      if [ "$(build_docker_image)" = 'true' ]; then
-        export DOCKER_IMAGE=nnidev/nni-it-pai:${TIMESTAMP}
-      else
-        export DOCKER_IMAGE=msranni/nni:latest
-      fi
-      echo "Using image: ${DOCKER_IMAGE}"
-
       cd test
       python3 nni_test/nnitest/generate_ts_config.py \
           --ts pai \
           --pai_reuse $(reuse_mode) \
           --pai_host https://ne.openpai.org \
           --pai_user zhliu1 \
-          --nni_docker_image ${DOCKER_IMAGE} \
+          --nni_docker_image nnidev/nni-it-pai:latest \
           --pai_storage_config_name confignfs-data \
           --pai_token $(pai_token) \
           --nni_manager_nfs_mount_path /home/quzha/mnt-pai-ne/shinyang3 \
