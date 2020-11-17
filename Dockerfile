@@ -3,6 +3,8 @@
 
 FROM nvidia/cuda:9.2-cudnn7-runtime-ubuntu18.04
 
+ARG NNI_RELEASE
+
 LABEL maintainer='Microsoft NNI Team<nni@microsoft.com>'
 
 ENV DEBIAN_FRONTEND=noninteractive 
@@ -72,7 +74,8 @@ RUN python3 -m pip --no-cache-dir install pandas==0.23.4 lightgbm==2.2.2
 #
 # Install NNI
 #
-RUN python3 -m pip --no-cache-dir install nni
+COPY dist/nni-${NNI_RELEASE}-py3-none-manylinux1_x86_64.whl
+RUN python3 -m pip install nni-${NNI_RELEASE}-py3-none-manylinux1_x86_64.whl
 
 #
 # install aml package

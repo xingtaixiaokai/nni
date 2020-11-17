@@ -8,8 +8,9 @@ schedules:
 variables:
   reuse_mode: false
 
-# variables set on VSO: (for security concern)
+# variables set on VSO: (mostly for security concern)
 #   manager_ip
+#   pai_user
 #   pai_token
 #   docker_hub_password
 
@@ -55,15 +56,9 @@ jobs:
   - script: |
       set -e
       docker login -u nnidev -p $(docker_hub_password)
-
-      echo 'Modify docker file to install NNI from local wheel'
-      sed -ie 's/RUN python3 -m pip --no-cache-dir install nni/COPY dist\/* .\nRUN python3 -m pip install nni-*.whl/' Dockerfile
-      cat Dockerfile
-
-      echo 'Build docker image'
-      docker build -f Dockerfile -t nnidev/nni-it-pai:latest .
-
-      echo 'Upload docker image'
+      echo '## Build docker image ##'
+      docker build --build-arg NNI_RELEASE=${NNI_RELEASE} -t nnidev/nni-it-pai:latest .
+      echo '## Upload docker image ##'
       docker push nnidev/nni-it-pai:latest
     condition: eq(variables['build_docker_image'], 'true')
     displayName: Build and upload docker image
@@ -75,7 +70,7 @@ jobs:
           --ts pai \
           --pai_reuse $(reuse_mode) \
           --pai_host https://ne.openpai.org \
-          --pai_user zhliu1 \
+          --pai_user $(pai_user) \
           --nni_docker_image nnidev/nni-it-pai:latest \
           --pai_storage_config_name confignfs-data \
           --pai_token $(pai_token) \
