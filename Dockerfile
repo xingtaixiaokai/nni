@@ -74,7 +74,7 @@ RUN python3 -m pip --no-cache-dir install pandas==0.23.4 lightgbm==2.2.2
 #
 # Install NNI
 #
-COPY dist/nni-${NNI_RELEASE}-py3-none-manylinux1_x86_64.whl
+COPY dist/nni-${NNI_RELEASE}-py3-none-manylinux1_x86_64.whl .
 RUN python3 -m pip install nni-${NNI_RELEASE}-py3-none-manylinux1_x86_64.whl
 
 #
