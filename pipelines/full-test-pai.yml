@@ -29,8 +29,8 @@ jobs:
       echo "working directory: ${PWD}"
       echo "timestamp: ${TIMESTAMP}"
       echo "build docker image: $(build_docker_image)"
-      echo "pip version: $(python3 -c 'import pip ; print(pip.__version__))"
-      echo "setuptools version: $(python3 -c setuptools ; print(setuptools.__version__))"
+      echo "pip version: $(python3 -c 'import pip ; print(pip.__version__)')"
+      echo "setuptools version: $(python3 -c 'setuptools ; print(setuptools.__version__)')"
     displayName: Prepare
 
   - script: |
