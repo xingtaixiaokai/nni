@@ -1,14 +1,14 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT license.
 
-FROM nvidia/cuda:9.2-cudnn7-runtime-ubuntu18.04
+FROM nvidia/cuda:11.1-cudnn8-runtime-ubuntu18.04
 
 LABEL maintainer='Microsoft NNI Team<nni@microsoft.com>'
 
 ENV DEBIAN_FRONTEND=noninteractive 
 
-RUN apt-get -y update && \
-    apt-get -y install sudo \
+RUN apt-get -y update
+RUN apt-get -y install sudo \
     apt-utils \
     git \
     curl \
@@ -26,28 +26,27 @@ RUN apt-get -y update && \
     python3-dev \
     python3-pip \
     python3-tk \
-    libcupti-dev && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+    libcupti-dev
+RUN apt-get clean
+RUN rm -rf /var/lib/apt/lists/*
 
 #
 # generate python script
 #
-RUN cp /usr/bin/python3 /usr/bin/python
+RUN ln -s python3 /usr/bin/python
 
 #
 # update pip
 #
-RUN python3 -m pip install --upgrade pip==20.0.2 setuptools==41.0.0
+RUN python3 -m pip install --upgrade pip==20.2.4 setuptools==50.3.2
 
 # numpy 1.14.3  scipy 1.1.0
-RUN python3 -m pip --no-cache-dir install \
-    numpy==1.14.3 scipy==1.1.0
+RUN python3 -m pip --no-cache-dir install numpy==1.14.3 scipy==1.1.0
 
 #
-# Tensorflow 1.15
+# TensorFlow
 #
-RUN python3 -m pip --no-cache-dir install tensorflow-gpu==1.15.0
+RUN python3 -m pip --no-cache-dir install tensorflow==2.3.1
 
 #
 # Keras 2.1.6
