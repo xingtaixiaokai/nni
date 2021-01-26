@@ -20,7 +20,7 @@ class SPOSSupernetTrainer(Trainer):
     ----------
     model : nn.Module
         Model with mutables.
-    mutator : Mutator
+    mutator : nni.nas.pytorch.mutator.Mutator
         A mutator object that has been initialized with the model.
     loss : callable
         Called with logits and targets. Returns a loss tensor.
@@ -63,6 +63,7 @@ class SPOSSupernetTrainer(Trainer):
         self.model.train()
         meters = AverageMeterGroup()
         for step, (x, y) in enumerate(self.train_loader):
+            x, y = x.to(self.device), y.to(self.device)
             self.optimizer.zero_grad()
             self.mutator.reset()
             logits = self.model(x)
@@ -82,6 +83,7 @@ class SPOSSupernetTrainer(Trainer):
         meters = AverageMeterGroup()
         with torch.no_grad():
             for step, (x, y) in enumerate(self.valid_loader):
+                x, y = x.to(self.device), y.to(self.device)
                 self.mutator.reset()
                 logits = self.model(x)
                 loss = self.loss(logits, y)

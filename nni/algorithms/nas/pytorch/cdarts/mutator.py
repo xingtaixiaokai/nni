@@ -4,14 +4,14 @@
 import torch
 
 from apex.parallel import DistributedDataParallel  # pylint: disable=import-error
-from nni.nas.pytorch.darts import DartsMutator  # pylint: disable=wrong-import-order
+from nni.algorithms.nas.pytorch.darts import DartsMutator  # pylint: disable=wrong-import-order
 from nni.nas.pytorch.mutables import LayerChoice  # pylint: disable=wrong-import-order
 from nni.nas.pytorch.mutator import Mutator  # pylint: disable=wrong-import-order
 
 
 class RegularizedDartsMutator(DartsMutator):
     """
-    This is :class:`~nni.nas.pytorch.darts.DartsMutator` basically, with two differences.
+    This is :class:`~nni.algorithms.nas.pytorch.darts.DartsMutator` basically, with two differences.
 
     1. Choices can be cut (bypassed). This is done by ``cut_choices``. Cutted choices will not be used in
     forward pass and thus consumes no memory.
@@ -132,7 +132,7 @@ class DartsDiscreteMutator(Mutator):
     ----------
     model : nn.Module
         The model to apply the mutator.
-    parent_mutator : Mutator
+    parent_mutator : nni.nas.pytorch.mutator.Mutator
         The mutator that provides ``sample_final`` method, that will be called to get the architecture.
     """
     def __init__(self, model, parent_mutator):
